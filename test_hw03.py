@@ -1,22 +1,47 @@
 import unittest
 import hw03
 
-KNOWN_USER = 'mfreema1'
-KNOWN_REPO = 'cs115'
-KNOWN_COMMITS = 10
-KNOWN_FORMAT = hw03.formatOutput(KNOWN_REPO, KNOWN_COMMITS)
+from unittest.mock import Mock
+
+repo = {
+    'https://api.github.com/users/test/repos': [
+        { 'name': 'foo' },
+        { 'name': 'bar' }
+    ],
+    'https://api.github.com/repos/test/foo/commits': [
+        {}, {}, {}
+    ],
+    'https://api.github.com/repos/test/bar/commits': [
+        {}
+    ]
+}
+
+def mockCall(url):
+    return Mock(
+        json=Mock(
+            return_value=repo[url]
+        )
+    )
 
 class Test(unittest.TestCase):
 
+    @classmethod
+    def setUpClass(clazz):
+        clazz.service = hw03.GitHubService(
+            Mock(
+                get=mockCall
+            )
+        )
+
     def test_repos(self):
-        actual = hw03.getRepos(KNOWN_USER)
-        self.assertTrue(KNOWN_REPO in actual)
+        actual = self.service.getRepos('test')
+        self.assertTrue('foo' in actual)
 
     def test_commits(self):
-        actual = hw03.getCommits(KNOWN_USER, KNOWN_REPO)
-        self.assertEqual(KNOWN_COMMITS, actual)
+        actual = self.service.getCommits('test', 'foo')
+        self.assertEqual(3, actual)
 
     def test_output(self):
-        actual = hw03.getReposAndCommits(KNOWN_USER)
-        self.assertTrue(KNOWN_FORMAT in actual)
+        actual = self.service.getReposAndCommits('test')
+        self.assertTrue(self.service.formatOutput('foo', 3) in actual)
         
